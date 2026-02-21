@@ -1,6 +1,6 @@
 export default {
   plugins: {
-    '@tailwindcss/postcss': {},
-    'autoprefixer': {},
+    tailwindcss: {}, // 👈 اكتبها كدة بس من غير @ ولا postcss زيادة
+    autoprefixer: {},
   },
-};
+}
