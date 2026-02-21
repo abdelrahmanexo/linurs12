@@ -1,25 +1,25 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // 1. إخبار المحرك الجديد إننا مش هنستخدمه دلوقتي
-  experimental: {
-    turbo: {
-      // إعدادات فارغة لإيقاف التضارب
-    },
-  } as any,
-  
-  // 2. إجبار النظام على استخدام Webpack المستقر
+  // 1. حل مشكلة مكتبة PDF.js وتجاهل طلب 'canvas'
   webpack: (config) => {
+    config.resolve.alias.canvas = false;
+    config.resolve.alias.encoding = false;
     return config;
   },
 
-  // 3. تخطي أخطاء البناء لضمان التشغيل
+  // 2. إعدادات الأمان واستقرار البناء
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: true, // تخطي أخطاء الـ Types البسيطة
   },
   eslint: {
-    ignoreDuringBuilds: true,
+    ignoreDuringBuilds: true, // تسريع البناء
   },
+
+  // 3. تحسين الصور (اختياري لضمان السرعة)
+  images: {
+    unoptimized: true,
+  }
 };
 
 export default nextConfig;
