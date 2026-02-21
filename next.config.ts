@@ -1,20 +1,25 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* 
-     تعطيل التحذير وإجبار النظام على استخدام الطريقة المستقرة 
-     لضمان عمل مكتبة الـ PDF بدون مشاكل مع المحرك الجديد
-  */
+  // 1. إخبار المحرك الجديد إننا مش هنستخدمه دلوقتي
+  experimental: {
+    turbo: {
+      // إعدادات فارغة لإيقاف التضارب
+    },
+  } as any,
+  
+  // 2. إجبار النظام على استخدام Webpack المستقر
   webpack: (config) => {
     return config;
   },
-  // إضافة هذه الإعدادات لتحسين الأداء في Vercel
+
+  // 3. تخطي أخطاء البناء لضمان التشغيل
   typescript: {
-    ignoreBuildErrors: true, // لضمان عدم توقف الرفع بسبب أخطاء بسيطة في الأنواع
+    ignoreBuildErrors: true,
   },
   eslint: {
-    ignoreDuringBuilds: true, // لتسريع عملية الرفع
-  }
+    ignoreDuringBuilds: true,
+  },
 };
 
 export default nextConfig;
