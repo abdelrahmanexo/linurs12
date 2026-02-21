@@ -1,0 +1,7 @@
+export default function Page() {
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <h1 className="text-2xl font-bold">مرحباً بك في صفحة (اكتب اسم احرجةا)</h1>
+    </div>
+  )
+}
