@@ -9,6 +9,9 @@ import HeroSection from "@/components/home/HeroSection";
 import InfoSlider from "@/components/home/InfoSlider";
 import BookGrid from "@/components/home/BookGrid";
 import TeamAccordion from "@/components/home/TeamAccordion"; // 👈 المكون الجديد
+import NurseMascot from "@/components/home/NurseMascot";
+import AboutSection from '@/components/home/AboutSection'
+
 
 // 1. تعريف الهيكل البياني للمراجع (Type Safety)
 interface MedicalResource {
@@ -157,6 +160,7 @@ export default function Home() {
 
       {/* لمسة نهائية: ظلال سينمائية في قاع الصفحة */}
       <div className="fixed bottom-0 left-0 w-full h-96 bg-gradient-to-t from-white via-white/40 to-transparent pointer-events-none z-0"></div>
+      <NurseMascot />
     </main>
   );
 }
