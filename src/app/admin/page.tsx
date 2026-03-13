@@ -86,20 +86,6 @@ export default function AdminPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [filterCategory, setFilterCategory] = useState('all')
 
-    if (checking) return (
-        <div className="min-h-screen flex items-center justify-center">
-            <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full" />
-        </div>
-    )
-
-    useEffect(() => { fetchAll() }, [])
-
-    const fetchAll = async () => {
-        setLoading(true)
-        await Promise.all([fetchBooks(), fetchTeam(), fetchSettings(), fetchCategories()])
-        setLoading(false)
-    }
-
     const fetchBooks = async () => {
         const { data } = await supabase.from('books').select('*').order('created_at', { ascending: false })
         if (data) {
@@ -130,7 +116,15 @@ export default function AdminPage() {
         if (data) setCategories(data)
     }
 
+    const fetchAll = async () => {
+        setLoading(true)
+        await Promise.all([fetchBooks(), fetchTeam(), fetchSettings(), fetchCategories()])
+        setLoading(false)
+    }
+
     const notify = useCallback((type: 'success' | 'error', msg: string) => setStatus({ type, msg }), [])
+
+    useEffect(() => { fetchAll() }, [])
 
     const filteredBooks = books.filter(b =>
         (b.title?.includes(searchQuery) || b.author?.includes(searchQuery)) &&
