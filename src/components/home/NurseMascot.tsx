@@ -79,7 +79,6 @@ export default function NurseMascot() {
           fontFamily: 'Tajawal, Cairo, sans-serif',
         }}
       >
-        {/* فقاعة الكلام */}
         {open && (
           <div style={{
             background: 'white',
@@ -133,7 +132,6 @@ export default function NurseMascot() {
           </div>
         )}
 
-        {/* الممرضة نورا */}
         <div
           onClick={() => setOpen(o => !o)}
           className={!bounce ? 'nurse-float' : undefined}

@@ -2,27 +2,25 @@ import type { Metadata, Viewport } from "next";
 import { Cairo } from "next/font/google";
 import "./globals.css";
 
-// 1. إعداد الخط بأداء عالٍ
 const cairo = Cairo({
   subsets: ["arabic"],
   weight: ["300", "400", "500", "700", "900"],
   variable: "--font-cairo",
-  display: 'swap', // لسرعة تحميل النص
+  display: 'swap', 
 });
 
-// 2. إعدادات الميتا داتا العالمية (SEO)
 export const metadata: Metadata = {
   title: "مكتبة التمريض الرقمية | Smart Nursing Library",
   description: "المرجع الرقمي الأول والأشمل لطلاب التمريض - كتب، أبحاث، ومصادر طبية موثوقة.",
   keywords: ["تمريض", "كتب طبية", "أبحاث تمريض", "مكتبة رقمية", "Nursing Books"],
   authors: [{ name: "Nursing Library Team" }],
   icons: {
-    icon: "/favicon.ico", // تأكد من وجود أيقونة بهذا الاسم في مجلد public
+    icon: "/favicon.ico", 
   }
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1e1b4b", // لون شريط المتصفح في الجوال
+  themeColor: "#1e1b4b", 
   width: "device-width",
   initialScale: 1,
 };
@@ -36,7 +34,6 @@ export default function RootLayout({
     <html lang="ar" dir="rtl" className="scroll-smooth">
       <body className={`${cairo.variable} font-sans antialiased bg-slate-50 text-slate-900 flex flex-col min-h-screen relative`}>
 
-        {/* ================== طبقة الخلفية السينمائية العائمة ================== */}
         <div className="fixed inset-0 z-[-2] overflow-hidden pointer-events-none">
           <div
             className="w-full h-full animate-soft-float"
@@ -44,26 +41,18 @@ export default function RootLayout({
               backgroundImage: "url('/college.jpg')",
               backgroundSize: 'cover',
               backgroundPosition: 'center',
-              filter: 'grayscale(20%) brightness(0.9)', // لمسة احترافية لتوحيد الألوان
-              opacity: 100 // 👈 خففنا الشفافية لراحة العين (العالمية تكمن في البساطة)
+              filter: 'grayscale(20%) brightness(0.9)', 
+              opacity: 100 
             }}
           />
-          {/* طبقة تدرج زجاجية لدمج الصورة مع المحتوى */}
           <div className="absolute inset-0 bg-gradient-to-tr from-slate-50 via-white/80 to-blue-50/50" />
         </div>
 
-        {/* 
-            ملاحظة: الـ Navbar هنا تم حذفه من الـ Layout 
-            لأنك قمت باستدعائه كمكون <Navbar /> داخل الـ page.tsx. 
-            بهذه الطريقة تتجنب التكرار. 
-        */}
 
-        {/* Content Area */}
         <main className="flex-grow w-full relative">
           {children}
         </main>
 
-        {/* Footer الاحترافي */}
         <footer className="relative z-10 py-16 bg-white/40 backdrop-blur-xl border-t border-slate-200/60 mt-20">
           <div className="container mx-auto px-8">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-12 items-center text-center md:text-right">
@@ -86,7 +75,7 @@ export default function RootLayout({
                 <div className="flex gap-6 text-sm font-bold text-slate-400">
                   <a href="#" className="hover:text-indigo-600 transition-colors">عن الكلية</a>
                   <a href="#" className="hover:text-indigo-600 transition-colors">اتصل بنا</a>
-                  <a href="#" className="hover:text-indigo-600 transition-colors">الشروط</a>
+                  <a href="#" className="hover:text-indigo-600 transition-colors">الرئيسية</a>
                 </div>
               </div>
 

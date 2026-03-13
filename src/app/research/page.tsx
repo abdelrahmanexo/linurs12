@@ -16,7 +16,6 @@ export default function ResearchPage() {
         const fetchResearch = async () => {
             try {
                 setLoading(true)
-                // 👈 الفلترة هنا جراحية: بنجيب اللي نوعه research بس
                 const { data, error } = await supabase
                     .from('books')
                     .select('*')
@@ -41,7 +40,6 @@ export default function ResearchPage() {
             <Navbar />
 
             <div className="pt-20 pb-20 space-y-16">
-                {/* هيرو مصغر لصفحة الأبحاث */}
                 <section className="px-10">
                     <div className="bg-indigo-600/10 backdrop-blur-xl border border-indigo-200/50 rounded-[3rem] p-12 flex flex-col md:flex-row items-center justify-between gap-8">
                         <div className="space-y-4 text-right">
@@ -57,7 +55,6 @@ export default function ResearchPage() {
                             </p>
                         </div>
 
-                        {/* بار بحث مخصص للأبحاث فقط */}
                         <div className="w-full max-w-md relative group">
                             <div className="absolute -inset-1 bg-indigo-500 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
                             <div className="relative flex items-center bg-white/80 backdrop-blur-xl rounded-2xl border border-indigo-100">
@@ -73,7 +70,6 @@ export default function ResearchPage() {
                     </div>
                 </section>
 
-                {/* عرض النتائج باستخدام المكون العالمي اللي عملناه */}
                 <div className="space-y-10 px-6">
                     <div className="flex items-center justify-between px-10">
                         <h3 className="text-2xl font-black text-slate-800">نتائج البحث في الأكاديميا</h3>

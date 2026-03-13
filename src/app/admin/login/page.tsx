@@ -16,7 +16,6 @@ export default function AdminLogin() {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       const token = await userCredential.user.getIdToken();
-      // حفظ التوكن في cookie
       document.cookie = `firebase-token=${token}; path=/`;
       router.push("/admin");
     } catch (err) {

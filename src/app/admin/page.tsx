@@ -29,6 +29,8 @@ interface Book {
 interface TeamMember {
     id: string; name: string; title: string; specialty: string
     image_url: string; email?: string; order?: number
+    message?: string
+    book_ids?: string[]
 }
 interface Category { id: string; key: string; label: string; order: number }
 interface SiteSettings {
@@ -38,7 +40,6 @@ interface SiteSettings {
     contact_email: string; contact_phone: string; facebook_url: string; whatsapp_url: string
 }
 
-// ── Toast ──────────────────────────────────────────────────
 function Toast({ status, onClose }: { status: { type: 'success' | 'error', msg: string } | null, onClose: () => void }) {
     useEffect(() => { if (status) { const t = setTimeout(onClose, 4000); return () => clearTimeout(t) } }, [status, onClose])
     if (!status) return null
@@ -51,7 +52,6 @@ function Toast({ status, onClose }: { status: { type: 'success' | 'error', msg: 
     )
 }
 
-// ── Main ───────────────────────────────────────────────────
 export default function AdminPage() {
     const [activeTab, setActiveTab] = useState<Tab>('dashboard')
     const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
@@ -77,22 +77,37 @@ export default function AdminPage() {
         await Promise.all([fetchBooks(), fetchTeam(), fetchSettings(), fetchCategories()])
         setLoading(false)
     }
+
     const fetchBooks = async () => {
         const { data } = await supabase.from('books').select('*').order('created_at', { ascending: false })
-        if (data) { setBooks(data); setStats(p => ({ ...p, books: data.filter(b => b.type === 'book').length, researches: data.filter(b => b.type === 'research').length })) }
+        if (data) {
+            setBooks(data)
+            setStats(p => ({ ...p, books: data.filter(b => b.type === 'book').length, researches: data.filter(b => b.type === 'research').length }))
+        }
     }
+
     const fetchTeam = async () => {
-        const { data } = await supabase.from('team').select('*').order('order', { ascending: true })
-        if (data) { setTeam(data); setStats(p => ({ ...p, team: data.length })) }
+        const { data: teamData } = await supabase.from('team').select('*').order('order', { ascending: true })
+        if (!teamData) return
+        const { data: tbData } = await supabase.from('team_books').select('*')
+        const enriched = teamData.map(m => ({
+            ...m,
+            book_ids: tbData?.filter(tb => tb.team_id === m.id).map(tb => String(tb.book_id)) || []
+        }))
+        setTeam(enriched)
+        setStats(p => ({ ...p, team: enriched.length }))
     }
+
     const fetchSettings = async () => {
         const { data } = await supabase.from('site_settings').select('*').single()
         if (data) setSettings(data)
     }
+
     const fetchCategories = async () => {
         const { data } = await supabase.from('categories').select('*').order('order', { ascending: true })
         if (data) setCategories(data)
     }
+
     const notify = useCallback((type: 'success' | 'error', msg: string) => setStatus({ type, msg }), [])
 
     const filteredBooks = books.filter(b =>
@@ -113,7 +128,6 @@ export default function AdminPage() {
     return (
         <div className="min-h-screen bg-slate-50 flex" dir="rtl">
 
-            {/* Sidebar */}
             <aside style={{ width: sidebarOpen ? 288 : 0 }}
                 className="bg-slate-900 text-white flex flex-col fixed h-full z-40 shadow-2xl overflow-hidden transition-all duration-300">
                 <div className="p-8 border-b border-white/10 flex-shrink-0">
@@ -144,14 +158,12 @@ export default function AdminPage() {
                 </div>
             </aside>
 
-            {/* Toggle sidebar button */}
             <button onClick={() => setSidebarOpen(!sidebarOpen)}
                 style={{ right: sidebarOpen ? 288 : 0 }}
                 className="fixed top-1/2 -translate-y-1/2 z-50 w-7 h-16 bg-slate-800 hover:bg-blue-600 text-white flex items-center justify-center rounded-l-2xl shadow-xl transition-all duration-300">
                 {sidebarOpen ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             </button>
 
-            {/* Main content */}
             <main style={{ marginRight: sidebarOpen ? 288 : 0 }} className="flex-1 p-10 transition-all duration-300 min-w-0">
                 <div className="flex items-center justify-between mb-10">
                     <div>
@@ -174,7 +186,7 @@ export default function AdminPage() {
                 {activeTab === 'books' && <BooksTab books={filteredBooks} searchQuery={searchQuery} setSearchQuery={setSearchQuery} filterCategory={filterCategory} setFilterCategory={setFilterCategory} categories={categories} onRefresh={fetchBooks} notify={notify} />}
                 {activeTab === 'upload' && <UploadTab categories={categories} onSuccess={() => { fetchBooks(); notify('success', 'تم نشر المرجع بنجاح 🚀') }} notify={notify} />}
                 {activeTab === 'categories' && <CategoriesTab categories={categories} onRefresh={fetchCategories} notify={notify} />}
-                {activeTab === 'team' && <TeamTab team={team} onRefresh={fetchTeam} notify={notify} />}
+                {activeTab === 'team' && <TeamTab team={team} books={books} onRefresh={fetchTeam} notify={notify} />}
                 {activeTab === 'dean' && <DeanTab settings={settings} setSettings={setSettings} notify={notify} />}
                 {activeTab === 'settings' && <SettingsTab settings={settings} setSettings={setSettings} notify={notify} />}
             </main>
@@ -184,7 +196,6 @@ export default function AdminPage() {
     )
 }
 
-// ── Dashboard ──────────────────────────────────────────────
 function DashboardTab({ stats, books }: { stats: any, books: Book[] }) {
     const cards = [
         { label: 'الكتب الأكاديمية', value: stats.books, icon: <Book size={24} />, bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
@@ -232,7 +243,6 @@ function DashboardTab({ stats, books }: { stats: any, books: Book[] }) {
     )
 }
 
-// ── Books ──────────────────────────────────────────────────
 function BooksTab({ books, searchQuery, setSearchQuery, filterCategory, setFilterCategory, categories, onRefresh, notify }:
     { books: Book[], searchQuery: string, setSearchQuery: any, filterCategory: string, setFilterCategory: any, categories: Category[], onRefresh: () => void, notify: any }) {
     const [editingBook, setEditingBook] = useState<Book | null>(null)
@@ -389,7 +399,6 @@ function BooksTab({ books, searchQuery, setSearchQuery, filterCategory, setFilte
     )
 }
 
-// ── Upload (any format) ────────────────────────────────────
 function UploadTab({ categories, onSuccess, notify }: { categories: Category[], onSuccess: () => void, notify: any }) {
     const [title, setTitle] = useState('')
     const [author, setAuthor] = useState('')
@@ -508,7 +517,6 @@ function UploadTab({ categories, onSuccess, notify }: { categories: Category[], 
                         )}
                     </div>
                     <div className="flex flex-col gap-5">
-                        {/* Any file */}
                         <div>
                             <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block">الملف — أي صيغة مقبولة</label>
                             <input type="file" onChange={handleFileChange} className="hidden" id="any-file" />
@@ -528,7 +536,6 @@ function UploadTab({ categories, onSuccess, notify }: { categories: Category[], 
                                 )}
                             </label>
                         </div>
-                        {/* Cover */}
                         <div>
                             <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 block">غلاف مخصص (اختياري)</label>
                             <input type="file" accept="image/*" onChange={e => { const f = e.target.files?.[0]; if (f) { setCoverFile(f); setCoverPreview(URL.createObjectURL(f)) } }} className="hidden" id="cover-file" />
@@ -559,7 +566,6 @@ function UploadTab({ categories, onSuccess, notify }: { categories: Category[], 
     )
 }
 
-// ── Categories ─────────────────────────────────────────────
 function CategoriesTab({ categories, onRefresh, notify }: { categories: Category[], onRefresh: () => void, notify: any }) {
     const [editing, setEditing] = useState<Category | null>(null)
     const [newLabel, setNewLabel] = useState('')
@@ -621,17 +627,110 @@ function CategoriesTab({ categories, onRefresh, notify }: { categories: Category
     )
 }
 
-// ── Team ───────────────────────────────────────────────────
-function TeamTab({ team, onRefresh, notify }: { team: TeamMember[], onRefresh: () => void, notify: any }) {
+function MemberForm({ data, setData, onSave, onCancel, fTitle, books, imgPreview, onImg, bookSearch, setBookSearch, saving, toggleBook }: any) {
+    const filtered = books.filter((b: any) => b.title?.includes(bookSearch) || b.author?.includes(bookSearch))
+    return (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={onCancel}>
+            <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+                <div className="flex items-center justify-between mb-8">
+                    <h3 className="text-2xl font-black text-slate-900">{fTitle}</h3>
+                    <button onClick={onCancel} className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200"><X size={20} /></button>
+                </div>
+
+                <div className="flex flex-col items-center mb-6">
+                    <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-100 mb-3 border-4 border-white shadow-xl">
+                        {(imgPreview || data.image_url)
+                            ? <img src={imgPreview || data.image_url} alt="" className="w-full h-full object-cover" />
+                            : <User className="m-auto mt-6 text-slate-300" size={32} />}
+                    </div>
+                    <input type="file" accept="image/*" onChange={onImg} className="hidden" id="m-img" />
+                    <label htmlFor="m-img" className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-xs cursor-pointer hover:bg-blue-100">
+                        <Camera size={14} /> تغيير الصورة
+                    </label>
+                </div>
+
+                <div className="space-y-4 mb-6">
+                    {[
+                        { k: 'name', ph: 'الاسم الكامل *' },
+                        { k: 'title', ph: 'المسمى الوظيفي *' },
+                        { k: 'specialty', ph: 'التخصص' },
+                    ].map(f => (
+                        <input key={f.k} type="text" value={data[f.k] || ''} onChange={e => setData({ ...data, [f.k]: e.target.value })} placeholder={f.ph}
+                            className="w-full p-4 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:ring-4 ring-blue-500/10 focus:border-blue-400" />
+                    ))}
+                    <textarea value={data.message || ''} onChange={e => setData({ ...data, message: e.target.value })}
+                        placeholder="كلمة الدكتور للطلاب..." rows={3}
+                        className="w-full p-4 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:ring-4 ring-blue-500/10 focus:border-blue-400 resize-none" />
+                </div>
+
+                <div className="border border-slate-200 rounded-2xl overflow-hidden mb-6">
+                    <div className="bg-slate-50 p-4 flex items-center justify-between border-b border-slate-200">
+                        <span className="font-black text-slate-700 text-sm flex items-center gap-2">
+                            <BookOpen size={16} className="text-blue-600" /> كتب الدكتور
+                        </span>
+                        <span className="text-xs font-black text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                            {(data.book_ids || []).length} كتاب محدد
+                        </span>
+                    </div>
+                    <div className="p-3 border-b border-slate-100">
+                        <div className="relative">
+                            <Search size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <input type="text" value={bookSearch} onChange={e => setBookSearch(e.target.value)}
+                                placeholder="ابحث في الكتب..."
+                                className="w-full pr-9 pl-3 py-2.5 bg-slate-50 border border-slate-200 rounded-xl font-bold text-sm text-slate-700 outline-none" />
+                        </div>
+                    </div>
+                    <div className="max-h-52 overflow-y-auto divide-y divide-slate-50">
+                        {filtered.length === 0
+                            ? <div className="p-6 text-center text-slate-400 font-bold text-sm">لا توجد كتب</div>
+                            : filtered.map((b: any) => {
+                                const selected = (data.book_ids || []).includes(String(b.id))
+                                return (
+                                    <button key={b.id} onClick={() => toggleBook(data, setData, String(b.id))}
+                                        className={`w-full flex items-center gap-3 px-4 py-3 text-right transition-colors ${selected ? 'bg-blue-50' : 'hover:bg-slate-50'}`}>
+                                        <div className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 transition-all ${selected ? 'bg-blue-600 border-blue-600' : 'border-slate-300'}`}>
+                                            {selected && <svg width="10" height="8" viewBox="0 0 10 8" fill="none"><path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="2" strokeLinecap="round" /></svg>}
+                                        </div>
+                                        <div className="w-8 h-10 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                                            {b.cover_url ? <img src={b.cover_url} alt="" className="w-full h-full object-cover" /> : <BookOpen size={12} className="m-auto mt-2 text-slate-300" />}
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className={`font-black text-sm truncate ${selected ? 'text-blue-700' : 'text-slate-700'}`}>{b.title}</p>
+                                            <p className="text-xs text-slate-400 font-bold truncate">{b.author}</p>
+                                        </div>
+                                    </button>
+                                )
+                            })}
+                    </div>
+                </div>
+
+                <div className="flex gap-4">
+                    <button onClick={onSave} disabled={saving}
+                        className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-700 disabled:opacity-60">
+                        {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} حفظ
+                    </button>
+                    <button onClick={onCancel} className="px-6 py-4 bg-slate-100 text-slate-700 rounded-2xl font-black hover:bg-slate-200">إلغاء</button>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+function TeamTab({ team, books, onRefresh, notify }: { team: TeamMember[], books: Book[], onRefresh: () => void, notify: any }) {
     const [editing, setEditing] = useState<TeamMember | null>(null)
     const [adding, setAdding] = useState(false)
     const [saving, setSaving] = useState(false)
     const [deleting, setDeleting] = useState<string | null>(null)
     const [imgFile, setImgFile] = useState<File | null>(null)
     const [imgPreview, setImgPreview] = useState<string | null>(null)
-    const [newM, setNewM] = useState({ name: '', title: '', specialty: '', image_url: '' })
+    const [bookSearch, setBookSearch] = useState('')
+    const [newM, setNewM] = useState({ name: '', title: '', specialty: '', message: '', image_url: '', book_ids: [] as string[] })
 
-    const onImg = (e: React.ChangeEvent<HTMLInputElement>) => { const f = e.target.files?.[0]; if (f) { setImgFile(f); setImgPreview(URL.createObjectURL(f)) } }
+    const onImg = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0]
+        if (f) { setImgFile(f); setImgPreview(URL.createObjectURL(f)) }
+    }
+
     const uploadImg = async (id: string) => {
         if (!imgFile) return null
         const ext = imgFile.name.split('.').pop()
@@ -640,11 +739,22 @@ function TeamTab({ team, onRefresh, notify }: { team: TeamMember[], onRefresh: (
         return publicUrl
     }
 
+    const saveTeamBooks = async (teamId: string, bookIds: string[]) => {
+        await supabase.from('team_books').delete().eq('team_id', teamId)
+        if (bookIds.length > 0) {
+            await supabase.from('team_books').insert(bookIds.map(bid => ({ team_id: teamId, book_id: Number(bid) })))
+        }
+    }
+
     const handleDelete = async (m: TeamMember) => {
         if (!confirm(`حذف ${m.name}؟`)) return
         setDeleting(m.id)
         try {
-            if (m.image_url?.includes('/nursing-books/')) { const p = m.image_url.split('/nursing-books/')[1]; if (p) await supabase.storage.from('nursing-books').remove([p]) }
+            if (m.image_url?.includes('/nursing-books/')) {
+                const p = m.image_url.split('/nursing-books/')[1]
+                if (p) await supabase.storage.from('nursing-books').remove([p])
+            }
+            await supabase.from('team_books').delete().eq('team_id', m.id)
             const { error } = await supabase.from('team').delete().eq('id', m.id)
             if (error) throw error
             notify('success', 'تم الحذف ✅'); onRefresh()
@@ -653,13 +763,20 @@ function TeamTab({ team, onRefresh, notify }: { team: TeamMember[], onRefresh: (
     }
 
     const handleEdit = async () => {
-        if (!editing) return; setSaving(true)
+        if (!editing) return
+        setSaving(true)
         try {
             let imgUrl = editing.image_url
             if (imgFile) imgUrl = await uploadImg(editing.id) || imgUrl
-            const { error } = await supabase.from('team').update({ name: editing.name, title: editing.title, specialty: editing.specialty, image_url: imgUrl }).eq('id', editing.id)
+            const { error } = await supabase.from('team').update({
+                name: editing.name, title: editing.title,
+                specialty: editing.specialty, message: editing.message,
+                image_url: imgUrl
+            }).eq('id', editing.id)
             if (error) throw error
-            notify('success', 'تم الحفظ ✅'); setEditing(null); setImgFile(null); setImgPreview(null); onRefresh()
+            await saveTeamBooks(editing.id, editing.book_ids || [])
+            notify('success', 'تم الحفظ ✅')
+            setEditing(null); setImgFile(null); setImgPreview(null); setBookSearch(''); onRefresh()
         } catch (e: any) { notify('error', e.message) }
         finally { setSaving(false) }
     }
@@ -669,51 +786,34 @@ function TeamTab({ team, onRefresh, notify }: { team: TeamMember[], onRefresh: (
         setSaving(true)
         try {
             const tempId = Date.now().toString()
-            let imgUrl = ''; if (imgFile) imgUrl = await uploadImg(tempId) || ''
-            const { error } = await supabase.from('team').insert([{ ...newM, image_url: imgUrl, order: team.length + 1 }])
+            let imgUrl = ''
+            if (imgFile) imgUrl = await uploadImg(tempId) || ''
+            const { data, error } = await supabase.from('team').insert([{
+                name: newM.name, title: newM.title, specialty: newM.specialty,
+                message: newM.message, image_url: imgUrl, order: team.length + 1
+            }]).select().single()
             if (error) throw error
-            notify('success', 'تم الإضافة 🎉'); setAdding(false); setNewM({ name: '', title: '', specialty: '', image_url: '' }); setImgFile(null); setImgPreview(null); onRefresh()
+            if (data && newM.book_ids.length > 0) await saveTeamBooks(data.id, newM.book_ids)
+            notify('success', 'تم الإضافة 🎉')
+            setAdding(false)
+            setNewM({ name: '', title: '', specialty: '', message: '', image_url: '', book_ids: [] })
+            setImgFile(null); setImgPreview(null); setBookSearch(''); onRefresh()
         } catch (e: any) { notify('error', e.message) }
         finally { setSaving(false) }
     }
 
-    const Form = ({ data, setData, onSave, onCancel, fTitle }: any) => (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-6" onClick={onCancel}>
-            <div className="bg-white rounded-[2.5rem] p-10 w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
-                <div className="flex items-center justify-between mb-8">
-                    <h3 className="text-2xl font-black text-slate-900">{fTitle}</h3>
-                    <button onClick={onCancel} className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200"><X size={20} /></button>
-                </div>
-                <div className="flex flex-col items-center mb-6">
-                    <div className="w-24 h-24 rounded-full overflow-hidden bg-slate-100 mb-3 border-4 border-white shadow-xl">
-                        {(imgPreview || data.image_url) ? <img src={imgPreview || data.image_url} alt="" className="w-full h-full object-cover" /> : <User className="m-auto mt-6 text-slate-300" size={32} />}
-                    </div>
-                    <input type="file" accept="image/*" onChange={onImg} className="hidden" id="m-img" />
-                    <label htmlFor="m-img" className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-600 rounded-xl font-black text-xs cursor-pointer hover:bg-blue-100">
-                        <Camera size={14} /> تغيير الصورة
-                    </label>
-                </div>
-                <div className="space-y-4">
-                    {[{ k: 'name', ph: 'الاسم الكامل *' }, { k: 'title', ph: 'المسمى الوظيفي *' }, { k: 'specialty', ph: 'التخصص' }].map(f => (
-                        <input key={f.k} type="text" value={data[f.k]} onChange={e => setData({ ...data, [f.k]: e.target.value })} placeholder={f.ph}
-                            className="w-full p-4 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:ring-4 ring-blue-500/10 focus:border-blue-400" />
-                    ))}
-                </div>
-                <div className="flex gap-4 mt-6">
-                    <button onClick={onSave} disabled={saving} className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-black flex items-center justify-center gap-3 hover:bg-blue-700 disabled:opacity-60">
-                        {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />} حفظ
-                    </button>
-                    <button onClick={onCancel} className="px-6 py-4 bg-slate-100 text-slate-700 rounded-2xl font-black hover:bg-slate-200">إلغاء</button>
-                </div>
-            </div>
-        </div>
-    )
+    const toggleBook = (data: any, setData: any, bookId: string) => {
+        const ids: string[] = data.book_ids || []
+        setData({ ...data, book_ids: ids.includes(bookId) ? ids.filter((id: string) => id !== bookId) : [...ids, bookId] })
+    }
 
     return (
         <div className="space-y-6">
-            <button onClick={() => { setAdding(true); setImgPreview(null); setImgFile(null) }} className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
+            <button onClick={() => { setAdding(true); setImgPreview(null); setImgFile(null); setBookSearch('') }}
+                className="flex items-center gap-3 px-6 py-4 bg-blue-600 text-white rounded-2xl font-black hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200">
                 <Plus size={20} /> إضافة عضو جديد
             </button>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {team.map(m => (
                     <div key={m.id} className="bg-white rounded-3xl border border-slate-100 shadow-sm p-6 hover:shadow-lg transition-shadow group">
@@ -727,24 +827,35 @@ function TeamTab({ team, onRefresh, notify }: { team: TeamMember[], onRefresh: (
                                 {m.specialty && <p className="text-xs text-blue-500 font-bold mt-0.5">{m.specialty}</p>}
                             </div>
                         </div>
+                        {m.message && (
+                            <p className="text-xs text-slate-400 font-bold italic line-clamp-2 mb-3 px-1">"{m.message}"</p>
+                        )}
+                        {(m.book_ids || []).length > 0 && (
+                            <div className="flex items-center gap-2 mb-3 px-1">
+                                <BookOpen size={12} className="text-blue-500" />
+                                <span className="text-xs font-black text-blue-600">{m.book_ids!.length} كتاب مرتبط</span>
+                            </div>
+                        )}
                         <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                            <button onClick={() => { setEditing(m); setImgPreview(null); setImgFile(null) }} className="flex-1 py-2 rounded-xl bg-amber-50 text-amber-600 font-black text-xs flex items-center justify-center gap-1 hover:bg-amber-100">
+                            <button onClick={() => { setEditing({ ...m }); setImgPreview(null); setImgFile(null); setBookSearch('') }}
+                                className="flex-1 py-2 rounded-xl bg-amber-50 text-amber-600 font-black text-xs flex items-center justify-center gap-1 hover:bg-amber-100">
                                 <Edit3 size={14} /> تعديل
                             </button>
-                            <button onClick={() => handleDelete(m)} disabled={deleting === m.id} className="flex-1 py-2 rounded-xl bg-rose-50 text-rose-600 font-black text-xs flex items-center justify-center gap-1 hover:bg-rose-100">
+                            <button onClick={() => handleDelete(m)} disabled={deleting === m.id}
+                                className="flex-1 py-2 rounded-xl bg-rose-50 text-rose-600 font-black text-xs flex items-center justify-center gap-1 hover:bg-rose-100">
                                 {deleting === m.id ? <Loader2 size={14} className="animate-spin" /> : <><Trash2 size={14} /> حذف</>}
                             </button>
                         </div>
                     </div>
                 ))}
             </div>
-            {editing && <Form data={editing} setData={setEditing} onSave={handleEdit} onCancel={() => { setEditing(null); setImgPreview(null) }} fTitle="تعديل بيانات العضو" />}
-            {adding && <Form data={newM} setData={setNewM} onSave={handleAdd} onCancel={() => { setAdding(false); setImgPreview(null) }} fTitle="إضافة عضو جديد" />}
+
+            {editing && <MemberForm data={editing} setData={setEditing} onSave={handleEdit} onCancel={() => { setEditing(null); setImgPreview(null) }} fTitle="تعديل بيانات العضو" books={books} imgPreview={imgPreview} onImg={onImg} bookSearch={bookSearch} setBookSearch={setBookSearch} saving={saving} toggleBook={toggleBook} />}
+            {adding && <MemberForm data={newM} setData={setNewM} onSave={handleAdd} onCancel={() => { setAdding(false); setImgPreview(null) }} fTitle="إضافة عضو جديد" books={books} imgPreview={imgPreview} onImg={onImg} bookSearch={bookSearch} setBookSearch={setBookSearch} saving={saving} toggleBook={toggleBook} />}
         </div>
     )
 }
 
-// ── Dean ───────────────────────────────────────────────────
 function DeanTab({ settings, setSettings, notify }: { settings: SiteSettings, setSettings: any, notify: any }) {
     const [saving, setSaving] = useState(false)
     const [imgFile, setImgFile] = useState<File | null>(null)
@@ -761,7 +872,9 @@ function DeanTab({ settings, setSettings, notify }: { settings: SiteSettings, se
                 deanImg = publicUrl
             }
             const updated = { ...settings, dean_image_url: deanImg }
-            const { error } = settings.id ? await supabase.from('site_settings').update(updated).eq('id', settings.id) : await supabase.from('site_settings').insert([updated])
+            const { error } = settings.id
+                ? await supabase.from('site_settings').update(updated).eq('id', settings.id)
+                : await supabase.from('site_settings').insert([updated])
             if (error) throw error
             setSettings(updated); notify('success', 'تم حفظ بيانات العميد ✅'); setImgFile(null); setImgPreview(null)
         } catch (e: any) { notify('error', e.message) }
@@ -805,14 +918,15 @@ function DeanTab({ settings, setSettings, notify }: { settings: SiteSettings, se
     )
 }
 
-// ── Settings ───────────────────────────────────────────────
 function SettingsTab({ settings, setSettings, notify }: { settings: SiteSettings, setSettings: any, notify: any }) {
     const [saving, setSaving] = useState(false)
 
     const handleSave = async () => {
         setSaving(true)
         try {
-            const { error } = settings.id ? await supabase.from('site_settings').update(settings).eq('id', settings.id) : await supabase.from('site_settings').insert([settings])
+            const { error } = settings.id
+                ? await supabase.from('site_settings').update(settings).eq('id', settings.id)
+                : await supabase.from('site_settings').insert([settings])
             if (error) throw error
             notify('success', 'تم حفظ الإعدادات ✅')
         } catch (e: any) { notify('error', e.message) }
@@ -852,9 +966,7 @@ function SettingsTab({ settings, setSettings, notify }: { settings: SiteSettings
                     <div className="space-y-5">
                         {sec.fields.map((f: any) => (
                             <div key={f.k}>
-                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">
-                                    {f.ico}{f.l}
-                                </label>
+                                <label className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2 flex items-center gap-2">{f.ico}{f.l}</label>
                                 {f.ml
                                     ? <textarea value={(settings as any)[f.k] || ''} onChange={e => setSettings({ ...settings, [f.k]: e.target.value })} rows={4} placeholder={f.ph}
                                         className="w-full p-4 border border-slate-200 rounded-2xl font-bold text-slate-800 outline-none focus:ring-4 ring-blue-500/10 focus:border-blue-400 resize-none" />

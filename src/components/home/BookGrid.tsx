@@ -16,7 +16,6 @@ export default function BookGrid({ books, loading }: { books: any[], loading: bo
       {books.map((book) => (
         <div key={book.id} className="group relative flex flex-col bg-white/40 backdrop-blur-2xl rounded-2xl border border-white/60 shadow-xl hover:shadow-2xl transition-all duration-500 overflow-hidden">
           
-          {/* قسم الغلاف - مربع تماماً (Aspect Square) */}
           <div className="relative aspect-square w-full overflow-hidden border-b border-white/20">
             {book.cover_url ? (
               <img 
@@ -30,7 +29,6 @@ export default function BookGrid({ books, loading }: { books: any[], loading: bo
               </div>
             )}
             
-            {/* زر القراءة السريعة العائم */}
             <div className="absolute inset-0 bg-blue-900/40 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300 flex items-center justify-center">
               <Link 
                 href={`/reader?file=${encodeURIComponent(book.file_url)}&title=${encodeURIComponent(book.title)}`} 
@@ -41,20 +39,17 @@ export default function BookGrid({ books, loading }: { books: any[], loading: bo
             </div>
           </div>
 
-          {/* محتوى بيانات الكتاب المنسق */}
           <div className="p-6 flex flex-col flex-grow">
             <h2 className="text-xl font-black text-slate-800 mb-3 line-clamp-2 min-h-[56px] leading-snug">
               {book.title}
             </h2>
             
             <div className="space-y-3 mb-6">
-              {/* المؤلف */}
               <div className="flex items-center gap-2 text-slate-500">
                 <User size={14} className="text-blue-600" />
                 <span className="text-sm font-bold">د. {book.author}</span>
               </div>
               
-              {/* البيانات الفنية (التاريخ والصفحات) */}
               <div className="flex items-center gap-4 border-t border-white/20 pt-3">
                 <div className="flex items-center gap-1.5 text-slate-500">
                   <Calendar size={14} />
@@ -67,7 +62,6 @@ export default function BookGrid({ books, loading }: { books: any[], loading: bo
               </div>
             </div>
 
-            {/* الزر السفلي */}
             <Link 
               href={`/reader?file=${encodeURIComponent(book.file_url)}&title=${encodeURIComponent(book.title)}`} 
               className="mt-auto flex items-center justify-between w-full bg-blue-600/10 hover:bg-blue-600 text-blue-700 hover:text-white px-5 py-3 rounded-xl font-black text-sm transition-all group/btn"

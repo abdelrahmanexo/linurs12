@@ -8,7 +8,6 @@ import {
 } from "lucide-react"
 import { supabase } from '@/lib/supabase'
 
-// ── أيقونة لكل key معروف — أي key جديد يأخذ BookOpen ──────
 const iconMap: Record<string, React.ReactNode> = {
     all:         <LayoutGrid size={28} />,
     internal:    <Heart size={28} />,
@@ -29,7 +28,6 @@ const iconMap: Record<string, React.ReactNode> = {
     injection:   <Syringe size={28} />,
 }
 
-// ── لوحة ألوان تتناوب تلقائياً على الأقسام ────────────────
 const colorPalette = [
     { color: "from-rose-500 to-red-600",        bg: "bg-rose-100/50",    text: "text-rose-600"    },
     { color: "from-indigo-500 to-purple-600",   bg: "bg-indigo-100/50",  text: "text-indigo-600"  },
@@ -44,7 +42,6 @@ const colorPalette = [
     { color: "from-sky-500 to-cyan-600",        bg: "bg-sky-100/50",     text: "text-sky-600"     },
 ]
 
-// ── النوع الداخلي للشريحة ──────────────────────────────────
 interface Slide {
     id: string
     title: string
@@ -54,7 +51,6 @@ interface Slide {
     text: string
 }
 
-// ── الكارت الثابت "الكل" — دايماً أول واحد ────────────────
 const ALL_SLIDE: Slide = {
     id: 'all', title: 'الكل',
     icon: <LayoutGrid size={28} />,
@@ -62,7 +58,6 @@ const ALL_SLIDE: Slide = {
     bg: "bg-blue-100/50", text: "text-blue-600",
 }
 
-// ── الأقسام الافتراضية لو Supabase فاضية أو بطيء ──────────
 const DEFAULT_SLIDES: Slide[] = [
     { id: 'internal',  title: "تمريض باطني",   icon: <Heart size={28} />,     color: "from-rose-500 to-red-600",       bg: "bg-rose-100/50",    text: "text-rose-600"    },
     { id: 'critical',  title: "عناية مركزة",   icon: <Activity size={28} />,  color: "from-indigo-500 to-purple-600",  bg: "bg-indigo-100/50",  text: "text-indigo-600"  },
@@ -82,14 +77,13 @@ export default function InfoSlider({ selected, onSelect }: { selected: string, o
     const [scrollProgress, setScrollProgress] = useState(0)
     const [slides,         setSlides]         = useState<Slide[]>([ALL_SLIDE, ...DEFAULT_SLIDES])
 
-    // ── جلب الأقسام من Supabase وتحديث الشرائح ────────────
     useEffect(() => {
         supabase
             .from('categories')
             .select('*')
             .order('order', { ascending: true })
             .then(({ data }) => {
-                if (!data || data.length === 0) return          // يبقى على الافتراضي
+                if (!data || data.length === 0) return         
                 const dynamic: Slide[] = data.map((cat, i) => ({
                     id:    cat.key,
                     title: cat.label,
@@ -100,7 +94,6 @@ export default function InfoSlider({ selected, onSelect }: { selected: string, o
             })
     }, [])
 
-    // ── بكرة الماوس → تمرير أفقي ──────────────────────────
     useEffect(() => {
         const el = scrollRef.current
         if (!el) return
@@ -139,9 +132,8 @@ export default function InfoSlider({ selected, onSelect }: { selected: string, o
     const stopDrag = () => { isDraggingRef.current = false; setIsDragging(false) }
 
     return (
-        <section className="w-full mt-12 select-none">
+        <section className="w-full mt-0 select-none">
 
-            {/* الهيدر */}
             <div className="flex flex-col md:flex-row items-end justify-between px-10 mb-10 gap-4">
                 <div className="flex items-center gap-5">
                     <div className="w-2.5 h-14 bg-gradient-to-b from-blue-600 to-indigo-600 rounded-full shadow-lg shadow-blue-200"></div>
@@ -162,7 +154,6 @@ export default function InfoSlider({ selected, onSelect }: { selected: string, o
                 </div>
             </div>
 
-            {/* الكروت */}
             <div
                 ref={scrollRef}
                 onMouseDown={handleMouseDown}
@@ -207,7 +198,6 @@ export default function InfoSlider({ selected, onSelect }: { selected: string, o
                 })}
             </div>
 
-            {/* شريط التقدم */}
             <div className="px-10 max-w-4xl mx-auto">
                 <div className="relative h-1.5 w-full bg-slate-200/50 rounded-full overflow-hidden border border-white/50 shadow-inner">
                     <div
