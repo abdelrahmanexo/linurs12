@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   keywords: ["تمريض", "كتب طبية", "أبحاث تمريض", "مكتبة رقمية", "Nursing Books"],
   authors: [{ name: "Nursing Library Team" }],
   icons: {
-    icon: "/logo.png", 
+    icon: "/favicon.ico", 
   }
 };
 

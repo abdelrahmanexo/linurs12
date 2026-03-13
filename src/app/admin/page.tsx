@@ -16,6 +16,9 @@ import {
     Library, Facebook, Phone, Mail, MessageCircle
 } from 'lucide-react'
 import * as pdfjsLib from 'pdfjs-dist'
+import { useRouter } from 'next/navigation'
+import { auth } from '@/lib/firebase'
+import { onAuthStateChanged } from 'firebase/auth'
 
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`
 
@@ -56,6 +59,19 @@ export default function AdminPage() {
     const [activeTab, setActiveTab] = useState<Tab>('dashboard')
     const [status, setStatus] = useState<{ type: 'success' | 'error', msg: string } | null>(null)
     const [loading, setLoading] = useState(false)
+    const router = useRouter()
+    const [checking, setChecking] = useState(true)
+
+    useEffect(() => {
+        const unsub = onAuthStateChanged(auth, async (user) => {
+            if (!user) { router.replace('/login'); return }
+            const token = await user.getIdTokenResult()
+            if (!token.claims.admin) { router.replace('/'); return }
+            setChecking(false)
+        })
+        return () => unsub()
+    }, [])
+
     const [sidebarOpen, setSidebarOpen] = useState(true)
     const [books, setBooks] = useState<Book[]>([])
     const [team, setTeam] = useState<TeamMember[]>([])
@@ -69,6 +85,12 @@ export default function AdminPage() {
     const [stats, setStats] = useState({ books: 0, researches: 0, team: 0 })
     const [searchQuery, setSearchQuery] = useState('')
     const [filterCategory, setFilterCategory] = useState('all')
+
+    if (checking) return (
+        <div className="min-h-screen flex items-center justify-center">
+            <div className="animate-spin w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full" />
+        </div>
+    )
 
     useEffect(() => { fetchAll() }, [])
 
